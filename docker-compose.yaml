@@ -1,0 +1,307 @@
+services:
+  scheduler:
+    restart: unless-stopped
+    image: mcuadros/ofelia:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    command: daemon --docker
+    depends_on:
+      - honeygain
+      - earnapp-prohibited
+      - bitping
+      - packetstream
+      - pawns
+      - traffmonetizer
+      - repocket
+      - proxyrack
+      - earnfm
+
+  honeygain:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "25M"  # Soft memory reservation
+    mem_limit: "50M"  # Hard memory limit
+    networks:
+      - honeygain
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).0
+    image: honeygain/honeygain
+    command:
+      - "-tou-accept"
+      - "-email"
+      - "$HONEYGAIN_EMAIL"
+      - "-pass"
+      - "$HONEYGAIN_PASSWORD"
+      - "-device"
+      - "${RANDOM_DEVICE}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.honeygain-restart.schedule: "@every 3h"
+      ofelia.job-exec.honeygain-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  earnapp-prohibited:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "50M"  # Soft memory reservation
+    mem_limit: "100M"  # Hard memory limit
+    networks:
+      - earnapp-prohibited
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: earnapp-prohibited:local
+    build: ./earnapp-prohibited
+    environment:
+      # Generated with: echo sdk-node-$(cat /dev/urandom | LC_ALL=C tr -dc 'a-f0-9' | dd bs=1 count=32 2>/dev/null)
+      # Must register at https://earnapp.com/r/${EARNAPP_ID}
+      EARNAPP_ID: "${EARNAPP_ID}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.earnapp-restart.schedule: "@every 3h"
+      ofelia.job-exec.earnapp-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  bitping:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "25M"  # Soft memory reservation
+    mem_limit: "50M"  # Hard memory limit
+    networks:
+      - bitping
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: bitping/bitpingd
+    volumes:
+      - bitping-node-data:/root/.bitpingd
+    environment:
+      BITPING_EMAIL: "${BITPING_EMAIL}"
+      BITPING_PASSWORD: "${BITPING_PASSWORD}"
+      BITPING_MFA: "${BITPING_MFA}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.bitping-restart.schedule: "@every 3h"
+      ofelia.job-exec.bitping-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  packetstream:
+    restart: unless-stopped
+    # cpus: "0.05"
+    mem_reservation: "50M"  # Soft memory reservation
+    mem_limit: "100M"  # Hard memory limit
+    networks:
+      - packetstream
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: packetstream/psclient
+    environment:
+      CID: "${PACKETSTREAM_CID}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.packetstream-restart.schedule: "@every 3h"
+      ofelia.job-exec.packetstream-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  pawns:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "25M"  # Soft memory reservation
+    mem_limit: "50M"  # Hard memory limit
+    networks:
+      - pawns
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: iproyal/pawns-cli
+    command:
+      - "-accept-tos"
+      - "-email"
+      - "${PAWNS_EMAIL}"
+      - "-password"
+      - "${PAWNS_PASSWORD}"
+      - "-device-name"
+      - "${RANDOM_DEVICE}"
+      - "-device-id"
+      - "${RANDOM_DEVICE}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.pawns-restart.schedule: "@every 3h"
+      ofelia.job-exec.pawns-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  traffmonetizer:
+    restart: unless-stopped
+    cpus: "0.15"
+    mem_reservation: "25M"  # Soft memory reservation
+    mem_limit: "50M"  # Hard memory limit
+    networks:
+      - traffmonetizer
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: traffmonetizer/cli_v2:arm64v8
+    command:
+      - start
+      - accept
+      - --token
+      - "${TRAFFMONETIZER_TOKEN}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.traffmonetizer-restart.schedule: "@every 3h"
+      ofelia.job-exec.traffmonetizer-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  repocket:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "25M"  # Soft memory reservation
+    mem_limit: "50M"  # Hard memory limit
+    networks:
+      - repocket
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: repocket/repocket
+    environment:
+      RP_EMAIL: "${REPOCKET_EMAIL}"
+      RP_API_KEY: "${REPOCKET_API_KEY}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.repocket-restart.schedule: "@every 3h"
+      ofelia.job-exec.repocket-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  proxyrack:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "75M"  # Soft memory reservation
+    mem_limit: "100M"  # Hard memory limit
+    networks:
+      - proxyrack
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: proxyrack/pop
+    environment:
+      UUID: "${PROXYRACK_UUID}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.proxyrack-restart.schedule: "@every 3h"
+      ofelia.job-exec.proxyrack-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+  earnfm:
+    restart: unless-stopped
+    cpus: "0.05"
+    mem_reservation: "25M"  # Soft memory reservation
+    mem_limit: "50M"  # Hard memory limit
+    networks:
+      - earnfm
+    security_opt:
+      - no-new-privileges
+      - apparmor:docker-default
+    cap_drop:
+      - ALL # Drop all capabilities
+    cap_add:
+      - CAP_MKNOD # Allows the creation of special files using mknod(), such as device files.
+      - CAP_CHOWN # Allows changing the ownership of files (i.e., modifying file owner and group).
+      - CAP_KILL  # Allows a process to send signals to any process (including processes owned by different users).
+    image: earnfm/earnfm-client:latest
+    environment:
+      EARNFM_TOKEN: "${EARNFM_API_KEY}"
+    labels:
+      ofelia.enabled: "true"
+      ofelia.job-exec.earnfm-restart.schedule: "@every 3h"
+      ofelia.job-exec.earnfm-restart.command: "/bin/sh -c 'kill -s TERM 1 && sleep 10 && kill -s KILL 1'"
+
+volumes:
+  bitping-node-data:
+
+networks:
+  honeygain:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  earnapp-prohibited:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  bitping:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  packetstream:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  pawns:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  traffmonetizer:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  repocket:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  proxyrack:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
+
+  earnfm:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "false"
